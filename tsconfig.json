@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "lib": [
+      "es6"
+    ],
+    "types": [
+      "node",
+      "ssh2"
+    ],
+    "module": "commonjs",
+    "target": "es6",
+    "rootDir": "src",
+    "outDir": "out",
+    "inlineSourceMap": true,
+    "noImplicitAny": false,
+    "noImplicitThis": true,
+    "strictNullChecks": true,
+    "alwaysStrict": true,
+    "removeComments": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "node_modules/vscode/vscode.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
