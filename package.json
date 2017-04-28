@@ -1,5 +1,5 @@
 {
-  "name": "ftp-sync",
+  "name": "remote-sync",
   "description": "Auto sync your work to remote FTP/SFTP server",
   "version": "0.3.3",
   "publisher": "lukasz-wronski",
@@ -20,46 +20,55 @@
   ],
   "icon": "icon.png",
   "activationEvents": [
-    "onCommand:extension.ftpsyncinit",
-    "onCommand:extension.ftpsyncupload",
-    "onCommand:extension.ftpsyncdownload",
-    "onCommand:extension.ftpsynccommit",
-    "onCommand:extension.ftpsyncsingle",
-    "onCommand:extension.ftpsyncuploadselected",
+    "onCommand:extension.remotesync.init",
+    "onCommand:extension.remotesync.upload",
+    "onCommand:extension.remotesync.download",
+    "onCommand:extension.remotesync.commit",
+    "onCommand:extension.remotesync.single",
+    "onCommand:extension.remotesync.uploadselected",
+    "onCommand:extension.remotesync.downloadselected",
     "workspaceContains:.vscode/ftp-sync.json"
   ],
-  "main": "./out/extension",
+  "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "extension.ftpsyncinit",
-        "title": "Ftp-sync: Init"
+        "command": "extension.remotesync.init",
+        "title": "Remote-Sync: Init Workspace"
       },
       {
-        "command": "extension.ftpsyncupload",
-        "title": "Ftp-sync: Local to Remote"
+        "command": "extension.remotesync.upload",
+        "title": "Remote-Sync: Upload to Remote"
       },
       {
-        "command": "extension.ftpsyncdownload",
-        "title": "Ftp-sync: Remote to Local"
+        "command": "extension.remotesync.download",
+        "title": "Remote-Sync: Download to Local"
       },
       {
-        "command": "extension.ftpsynccommit",
-        "title": "Ftp-sync: Commit"
+        "command": "extension.remotesync.commit",
+        "title": "Remote-Sync: Commit Changes"
       },
       {
-        "command": "extension.ftpsyncsingle",
-        "title": "Ftp-sync: Sync current file to Remote"
+        "command": "extension.remotesync.single",
+        "title": "Remote-Sync: Sync current file to Remote"
       },
       {
-        "command": "extension.ftpsyncuploadselected",
-        "title": "Ftp-sync: Upload File"
+        "command": "extension.remotesync.uploadselected",
+        "title": "Remote-Sync: Upload Selected"
+      },
+      {
+        "command": "extension.remotesync.downloadselected",
+        "title": "Remote-Sync: Download Selected"
       }
     ],
     "menus": {
       "explorer/context": [
         {
-          "command": "extension.ftpsyncuploadselected",
+          "command": "extension.remotesync.uploadselected",
+          "group": "extension"
+        },
+        {
+          "command": "extension.remotesync.downloadselected",
           "group": "extension"
         }
       ]
@@ -68,22 +77,19 @@
   "scripts": {
     "postinstall": "node ./node_modules/vscode/bin/install",
     "vscode:prepublish": "tsc -p tsconfig.json",
+    "compile": "tsc -watch -p ./",
     "watch": "tsc -w -p tsconfig.json"
   },
   "devDependencies": {
     "@types/minimatch": "^2.0.29",
     "@types/node": "^7.0.13",
     "@types/ssh2": "^0.5.35",
-    "vscode": "1.1.0"
+    "vscode": "^1.1.0"
   },
   "dependencies": {
-    "fs-cp": "^1.3.1",
-    "fs-walk": "0.0.1",
     "ftp": "^0.3.10",
-    "lodash": "3.10.1",
-    "mkdirp": "^0.5.1",
-    "ssh2": "^0.4.13",
-    "stat-mode": "^0.2.1",
-    "upath": "0.1.6"
+    "minimatch": "^3.0.3",
+    "ssh2": "^0.5.4",
+    "stat-mode": "^0.2.1"
   }
 }

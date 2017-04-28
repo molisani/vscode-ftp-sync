@@ -1,27 +1,51 @@
+import fs = require("fs");
+import path = require("path");
 import Mode = require("stat-mode");
 
 import { ConnectionDescriptor } from "../sync-config";
-import { RemoteClient, ListEntry } from "../remote-client";
+import { ListEntry, RemoteFilesystem } from "../remote-client";
 
-import { Client, SFTPWrapper } from "ssh2";
+import { Client, ConnectConfig, SFTPWrapper } from "ssh2";
 
-export class SFTPRemoteClient implements RemoteClient {
-  private _client: Client;
-  private _sftp: SFTPWrapper;
-  constructor(desc: ConnectionDescriptor) {
-    this._client = new Client();
-  }
-  public connect(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this._client.sftp((err, sftp) => {
-        if (!err) {
-          this._sftp = sftp;
-          resolve();
-        } else {
-          reject(err);
+export class SFTPRemoteFilesystem implements RemoteFilesystem {
+  public static create(desc: ConnectionDescriptor): Promise<SFTPRemoteFilesystem> {
+    return new Promise<SFTPRemoteFilesystem>((resolve, reject) => {
+      let privateKey: Buffer | undefined = undefined;
+      if (desc.privateKeyPath) {
+        try {
+          privateKey = fs.readFileSync(desc.privateKeyPath);
+        } catch (err) {
+          return reject(err);
         }
+      }
+
+      const client = new Client();
+
+      client.on("ready", () => {
+        client.sftp((err, sftp) => {
+          if (!err) {
+            const remoteClient = new SFTPRemoteFilesystem(desc.remotePath, client, sftp);
+            resolve(remoteClient);
+          } else {
+            reject(err);
+          }
+        });
       });
+
+      const config: ConnectConfig = {
+        host: desc.host,
+        port: desc.port,
+        username: desc.username,
+        password: desc.password,
+        privateKey: privateKey,
+        passphrase: desc.passphrase,
+        agent: desc.agent
+      };
+
+      client.connect(config);
     });
+  }
+  private constructor(private _remoteRoot: string, private _client: Client, private _sftp: SFTPWrapper) {
   }
   public close(): void {
     this._client.end();
@@ -83,7 +107,9 @@ export class SFTPRemoteClient implements RemoteClient {
   }
   public listDir(remotePath: string): Promise<ListEntry[]> {
     return new Promise<ListEntry[]>((resolve, reject) => {
-      this._sftp.readdir(remotePath, (err, list) => {
+      const actualRemotePath = path.posix.join(this._remoteRoot, remotePath);
+      console.log(actualRemotePath);
+      this._sftp.readdir(actualRemotePath, (err, list) => {
         if (err) {
           return reject(err);
         }
@@ -98,13 +124,13 @@ export class SFTPRemoteClient implements RemoteClient {
         });
         resolve(entries);
       });
-      this._sftp.mkdir(remotePath, (err) => {
-        if (!err) {
-          resolve();
-        } else {
-          reject(err);
-        }
-      });
+      // this._sftp.mkdir(remotePath, (err) => {
+      //   if (!err) {
+      //     resolve();
+      //   } else {
+      //     reject(err);
+      //   }
+      // });
     });
   }
 }

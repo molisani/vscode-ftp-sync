@@ -2,7 +2,7 @@ import fs = require("fs");
 import vscode = require("vscode");
 import path = require("path")
 
-import { initializeWorkspace } from "./init-workspace";
+import { initializeWorkspace } from "./commands/init-workspace";
 
 export interface ConnectionDescriptor {
   remotePath: string;

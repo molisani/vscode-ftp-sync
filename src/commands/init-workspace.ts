@@ -1,9 +1,9 @@
 import fs = require("fs");
 import vscode = require("vscode");
 
-import { showError } from "./output";
+import { showError } from "../output";
 
-import { DEFAULT_CONFIG, getConfigDir, getConfigPath } from "./sync-config";
+import { DEFAULT_CONFIG, getConfigDir, getConfigPath, RemoteSyncConfig } from "../sync-config";
 
 export function initializeWorkspace(): void {
   if (!vscode.workspace.rootPath) {

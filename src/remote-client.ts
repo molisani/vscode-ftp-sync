@@ -7,8 +7,7 @@ export interface ListEntry {
   size: number;
 }
 
-export interface RemoteClient {
-  connect(): Promise<void>;
+export interface RemoteFilesystem {
   downloadFile(localPath: string, remotePath: string): Promise<void>;
   uploadFile(localPath: string, remotePath: string): Promise<void>;
   deleteFile(remotePath: string): Promise<void>;
@@ -18,10 +17,29 @@ export interface RemoteClient {
   close(): void;
 }
 
-import { SFTPRemoteClient } from "./remote-clients/sftp-client";
-export function buildRemoteClient(desc: ConnectionDescriptor): RemoteClient {
-  if (desc.protocol === "sftp") {
-    return new SFTPRemoteClient(desc);
+export class RemoteClient {
+  constructor(private _fs: RemoteFilesystem) {
+
   }
-  return new SFTPRemoteClient(desc);
+  public listRemoteFiles(remotePath: string) {
+    return this._fs.listDir(remotePath).then((entries) => {
+      console.log(entries);
+    });
+  }
+  public close(): void {
+    return this._fs.close();
+  }
+}
+
+function _buildRemoteClientFromFilesystem(fs: RemoteFilesystem): RemoteClient {
+  return new RemoteClient(fs);
+}
+
+
+import { SFTPRemoteFilesystem } from "./remote-clients/sftp-client";
+export function buildRemoteClient(desc: ConnectionDescriptor): Promise<RemoteClient> {
+  if (desc.protocol === "sftp") {
+    return SFTPRemoteFilesystem.create(desc).then(_buildRemoteClientFromFilesystem);
+  }
+  return SFTPRemoteFilesystem.create(desc).then(_buildRemoteClientFromFilesystem);
 }
