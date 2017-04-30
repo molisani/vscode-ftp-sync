@@ -99,7 +99,7 @@ export function activate(context: vscode.ExtensionContext) {
       showError("Error getting config.");
       return;
     }
-    if (config.preferences.uploadOnSave) {
+    if (!!config.preferences.uploadOnSave) {
       return buildRemoteClient(config).then((client) => {
         return uploadSelected(client, document.uri.fsPath).then(() => {
           client.close();
