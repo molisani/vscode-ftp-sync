@@ -8,8 +8,8 @@ import { buildRemoteClient, RemoteClient } from "./remote-client";
 
 import { browseRemote } from "./commands/browse-remote";
 import { initializeWorkspace } from "./commands/init-workspace";
-import { downloadDirectory, uploadDirectory } from "./commands/sync-directory";
-import { downloadSelected, uploadSelected } from "./commands/sync-selected";
+import { downloadDirectory, removeDirectory, uploadDirectory } from "./commands/sync-directory";
+import { downloadSelected, removeSelected, uploadSelected } from "./commands/sync-selected";
 import { showError } from "./output";
 
 interface CommandRegistration {
@@ -42,13 +42,21 @@ const COMMAND_REGISTRATIONS: CommandRegistration[] = [
         "command": "extension.remotesync.downloadselectedfile",
         "action": downloadSelected,
     },
-        {
+    {
+        "command": "extension.remotesync.removeselectedfile",
+        "action": removeSelected,
+    },
+    {
         "command": "extension.remotesync.uploadselecteddirectory",
-        "action": uploadSelected,
+        "action": uploadDirectory,
     },
     {
         "command": "extension.remotesync.downloadselecteddirectory",
-        "action": downloadSelected,
+        "action": downloadDirectory,
+    },
+    {
+        "command": "extension.remotesync.removeselecteddirectory",
+        "action": removeDirectory,
     },
     {
         "command": "extension.remotesync.browseremote",
@@ -79,6 +87,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   COMMAND_REGISTRATIONS.forEach((reg) => {
     const command = vscode.commands.registerCommand(reg.command, (uri?: vscode.Uri) => {
+      console.log(uri);
       performAction(reg.action, uri && uri.fsPath);
     });
     context.subscriptions.push(command);

@@ -65,7 +65,8 @@ export class LocalFilesystem implements Filesystem {
       });
     });
   }
-  public deleteDir(absoluteRemotePath: string): Promise<any> {
+  public deleteDir(absoluteRemotePath: string, recursive: boolean): Promise<any> {
+    // TODO: Implement recursive delete
     if (this._closed) {
       return Promise.reject(new Error("Connection closed."));
     }

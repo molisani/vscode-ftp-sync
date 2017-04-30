@@ -25,11 +25,14 @@ export interface ExcludeGlobs {
 export type PathMatching = IncludeGlobs | ExcludeGlobs;
 
 export interface SyncPreferences {
-  uploadOnSave: boolean;
+  uploadOnSave?: boolean;
   safety?: SyncSafety;
 
   remotePathMatching?: PathMatching;
   localPathMatching?: PathMatching;
+
+  remoteRecursiveRemoveDirectory?: boolean;
+  localRecursiveRemoveDirectory?: boolean;
 }
 
 export interface RemoteSyncConfig {
@@ -38,12 +41,6 @@ export interface RemoteSyncConfig {
 
   preferences: SyncPreferences;
   debug: boolean;
-
-  generatedFiles?: {
-    uploadOnSave: boolean;
-    extensionsToInclude: string[];
-    path: string;
-  }
 }
 
 export const DEFAULT_CONFIG: RemoteSyncConfig = {

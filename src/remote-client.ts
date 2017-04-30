@@ -3,6 +3,7 @@ import path = require("path");
 
 import { askForSafety, ConnectionConfig, PathMatching, RemoteSyncConfig, SyncSafety } from "./sync-config";
 
+import { setStatusBarMessage } from "./output";
 import { LocalFilesystem } from "./remote-clients/local-client";
 import { SFTPRemoteFilesystem } from "./remote-clients/sftp-client";
 import { shouldIgnore } from "./should-ignore";
@@ -37,7 +38,7 @@ export interface Filesystem {
   uploadFile(absoluteRemotePath: string, absoluteLocalPath: string): Promise<any>;
   deleteFile(absoluteRemotePath: string): Promise<any>;
   createDir(absoluteRemotePath: string): Promise<any>;
-  deleteDir(absoluteRemotePath: string): Promise<any>;
+  deleteDir(absoluteRemotePath: string, recursive: boolean): Promise<any>;
   listDir(absoluteRemotePath: string): Promise<ListEntry[]>;
   close(): void;
 }
@@ -114,6 +115,16 @@ function buildDiff(remoteEntries: ListEntry[], localEntries: ListEntry[], safety
   return diff;
 }
 
+function newSelfDirectory(): ListEntry {
+  return {
+    "name": ".",
+    "isDirectory": true,
+    "lastModified": 0,
+    "size": 0,
+    "depth": 0,
+  };
+}
+
 export class RemoteClient {
   private _local: LocalFilesystem = new LocalFilesystem();
   private _remoteRoot: string;
@@ -123,6 +134,7 @@ export class RemoteClient {
     this._localRoot = vscode.workspace.rootPath;
   }
   public buildSyncDiff(isUpload: boolean, relativePath: string = ".", safety?: SyncSafety): Promise<SyncDiff> {
+    console.log(`buildSyncDiff(isUpload=${isUpload}, relativePath=${relativePath}, safety=${safety})`);
     const remoteEntries = this._listRemoteFiles(relativePath);
     const localEntries = new Promise<ListEntry[]>((resolve) => {
       this._listLocalFiles(relativePath).then(resolve).catch(() => resolve([]));
@@ -139,14 +151,10 @@ export class RemoteClient {
     }
     return Promise.all([remoteEntries, localEntries, getSafety]).then((results) => {
       if (relativePath !== ".") {
-        results[0].push({
-          "name": ".",
-          "isDirectory": true,
-          "lastModified": 0,
-          "size": 0,
-          "depth": 0,
-        });
+        results[0].push(newSelfDirectory());
+        results[1].push(newSelfDirectory());
         results[0].forEach((entry) => entry.name = this._remote.path().join(relativePath, entry.name));
+        results[1].forEach((entry) => entry.name = this._local.path().join(relativePath, entry.name));
       }
       return buildDiff(results[0], results[1], results[2], isUpload);
     });
@@ -179,6 +187,8 @@ export class RemoteClient {
         const removedDirectories = diff.directoriesRemoved.map(removeDir);
         return Promise.all(removedDirectories).then(() => undefined);
       });
+    }).then(() => {
+      return setStatusBarMessage(`Successfully executed sync ${isUpload ? "on" : "from"} remote.`);
     });
   }
   public uploadFile(relativePath: string): Promise<any> {
@@ -187,9 +197,21 @@ export class RemoteClient {
   public downloadFile(relativePath: string): Promise<any> {
     return this._replaceFileLocal({ "name": relativePath });
   }
+  public removeFile(relativePath: string): Promise<any> {
+    return this._removeFileRemote({ "name": relativePath });
+  }
   public downloadDirectory(relativePath: string, force: boolean): Promise<any> {
     return this.buildSyncDiff(false, relativePath, force ? "force" : "full").then((diff) => {
       return this.executeSyncDiff(false, diff);
+    });
+  }
+  public removeDirectory(relativePath: string): Promise<any> {
+    return this._listRemoteFiles(relativePath).then((remoteEntries) => {
+      remoteEntries.push(newSelfDirectory());
+      remoteEntries.forEach((entry) => entry.name = this._remote.path().join(relativePath, entry.name));
+      return buildDiff(remoteEntries, [], "full", true);
+    }).then((diff) => {
+      console.log(diff);
     });
   }
   public listContents(directoryPath: string): Promise<ListEntry[]> {
@@ -239,10 +261,10 @@ export class RemoteClient {
     return this._local.createDir(this._absoluteLocalPath(dir.name));
   }
   private _removeDirRemote(dir: { name: string }): Promise<any> {
-    return this._remote.deleteDir(this._absoluteRemotePath(dir.name));
+    return this._remote.deleteDir(this._absoluteRemotePath(dir.name), !!this._config.preferences.remoteRecursiveRemoveDirectory);
   }
   private _removeDirLocal(dir: { name: string }): Promise<any> {
-    return this._local.deleteDir(this._absoluteLocalPath(dir.name));
+    return this._local.deleteDir(this._absoluteLocalPath(dir.name), !!this._config.preferences.remoteRecursiveRemoveDirectory);
   }
   private _replaceFileRemote(file: { name: string }): Promise<any> {
     return this._remote.uploadFile(this._absoluteRemotePath(file.name), this._absoluteLocalPath(file.name));

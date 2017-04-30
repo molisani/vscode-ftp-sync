@@ -1,19 +1,19 @@
 {
   "name": "remote-sync",
-  "description": "Auto sync your work to remote FTP/SFTP server",
-  "version": "0.4.0",
+  "description": "Sync your workspace to a remote server over FTP/SFTP",
+  "version": "0.4.0-beta",
   "publisher": "molisani",
   "engines": {
     "vscode": "^1.1.0"
   },
   "bugs": {
-    "url": "https://github.com/lukasz-wronski/vscode-ftp-sync/issues",
-    "email": "vscode@lukaszwronski.pl"
+    "url": "https://github.com/molisani/vscode-remote-sync/issues",
+    "email": "remote-sync@molisani.us"
   },
-  "homepage": "https://github.com/lukasz-wronski/vscode-ftp-sync/blob/master/README.md",
+  "homepage": "https://github.com/molisani/vscode-remote-sync/blob/master/README.md",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lukasz-wronski/vscode-ftp-sync.git"
+    "url": "https://github.com/molisani/vscode-remote-sync.git"
   },
   "categories": [
     "Other"
@@ -21,12 +21,16 @@
   "icon": "icon.png",
   "activationEvents": [
     "onCommand:extension.remotesync.init",
-    "onCommand:extension.remotesync.upload",
     "onCommand:extension.remotesync.download",
-    "onCommand:extension.remotesync.uploadcurrent",
+    "onCommand:extension.remotesync.upload",
     "onCommand:extension.remotesync.downloadcurrent",
-    "onCommand:extension.remotesync.uploadselectedfile",
+    "onCommand:extension.remotesync.uploadcurrent",
     "onCommand:extension.remotesync.downloadselectedfile",
+    "onCommand:extension.remotesync.uploadselectedfile",
+    "onCommand:extension.remotesync.removeselectedfile",
+    "onCommand:extension.remotesync.downloadselecteddirectory",
+    "onCommand:extension.remotesync.uploadselecteddirectory",
+    "onCommand:extension.remotesync.removeselecteddirectory",
     "onCommand:extension.remotesync.browseremote",
     "workspaceContains:.vscode/remote-sync.json"
   ],
@@ -38,36 +42,44 @@
         "title": "Remote-Sync: Initialize Workspace"
       },
       {
-        "command": "extension.remotesync.upload",
-        "title": "Remote-Sync: Sync Workspace to Remote"
-      },
-      {
         "command": "extension.remotesync.download",
         "title": "Remote-Sync: Sync Workspace from Remote"
       },
       {
-        "command": "extension.remotesync.uploadcurrent",
-        "title": "Remote-Sync: Upload Current File"
+        "command": "extension.remotesync.upload",
+        "title": "Remote-Sync: Sync Workspace to Remote"
       },
       {
         "command": "extension.remotesync.downloadcurrent",
         "title": "Remote-Sync: Download Current File"
       },
       {
-        "command": "extension.remotesync.uploadselectedfile",
-        "title": "Remote-Sync: Upload Selected File"
+        "command": "extension.remotesync.uploadcurrent",
+        "title": "Remote-Sync: Upload Current File"
       },
       {
         "command": "extension.remotesync.downloadselectedfile",
         "title": "Remote-Sync: Download Selected File"
       },
-            {
-        "command": "extension.remotesync.uploadselecteddirectory",
-        "title": "Remote-Sync: Upload Selected Directory"
+      {
+        "command": "extension.remotesync.uploadselectedfile",
+        "title": "Remote-Sync: Upload Selected File"
+      },
+      {
+        "command": "extension.remotesync.removeselectedfile",
+        "title": "Remote-Sync: Remove Selected File"
       },
       {
         "command": "extension.remotesync.downloadselecteddirectory",
         "title": "Remote-Sync: Download Selected Directory"
+      },
+      {
+        "command": "extension.remotesync.uploadselecteddirectory",
+        "title": "Remote-Sync: Upload Selected Directory"
+      },
+      {
+        "command": "extension.remotesync.removeselecteddirectory",
+        "title": "Remote-Sync: Remove Selected Directory"
       },
       {
         "command": "extension.remotesync.browseremote",
@@ -77,11 +89,19 @@
     "menus": {
       "commandPalette": [
         {
+          "command": "extension.remotesync.downloadselectedfile",
+          "when": "false"
+        },
+        {
           "command": "extension.remotesync.uploadselectedfile",
           "when": "false"
         },
         {
-          "command": "extension.remotesync.downloadselectedfile",
+          "command": "extension.remotesync.removeselectedfile",
+          "when": "false"
+        },
+        {
+          "command": "extension.remotesync.downloadselecteddirectory",
           "when": "false"
         },
         {
@@ -89,29 +109,39 @@
           "when": "false"
         },
         {
-          "command": "extension.remotesync.downloadselecteddirectory",
+          "command": "extension.remotesync.removeselecteddirectory",
           "when": "false"
         }
       ],
       "explorer/context": [
         {
-          "command": "extension.remotesync.uploadselectedfile",
-          "group": "remotesync",
-          "when": "!explorerResourceIsFolder"
-        },
-        {
           "command": "extension.remotesync.downloadselectedfile",
-          "group": "remotesync",
+          "group": "remotesync@1",
           "when": "!explorerResourceIsFolder"
         },
         {
-          "command": "extension.remotesync.uploadselecteddirectory",
-          "group": "remotesync",
-          "when": "explorerResourceIsFolder"
+          "command": "extension.remotesync.uploadselectedfile",
+          "group": "remotesync@2",
+          "when": "!explorerResourceIsFolder"
+        },
+        {
+          "command": "extension.remotesync.removeselectedfile",
+          "group": "remotesync@3",
+          "when": "!explorerResourceIsFolder"
         },
         {
           "command": "extension.remotesync.downloadselecteddirectory",
-          "group": "remotesync",
+          "group": "remotesync@1",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "extension.remotesync.uploadselecteddirectory",
+          "group": "remotesync@2",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "extension.remotesync.removeselecteddirectory",
+          "group": "remotesync@3",
           "when": "explorerResourceIsFolder"
         }
       ]

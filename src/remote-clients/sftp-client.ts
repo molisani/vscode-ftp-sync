@@ -89,7 +89,8 @@ export class SFTPRemoteFilesystem implements Filesystem {
       });
     });
   }
-  public deleteDir(absoluteRemotePath: string): Promise<any> {
+  public deleteDir(absoluteRemotePath: string, recursive: boolean): Promise<any> {
+    // TODO: Implement recursive delete
     return new Promise<any>((resolve, reject) => {
       this._sftp.rmdir(absoluteRemotePath, (err) => {
         if (!err) {

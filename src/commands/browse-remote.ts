@@ -22,7 +22,7 @@ function selectEntry(entries: ListEntry[], directoryPath: string): Promise<ListE
       "description": entry.isDirectory ? "Download entire directory or browse contents." : filesize(entry.size),
       "value": entry,
     };
-  }), "Select a file or subdirectory.");
+  }), "Select a file or subdirectory to download.");
 }
 
 function selectEntryFromDirectory(client: RemoteClient, directoryPath: string = "."): Promise<ListEntry> {

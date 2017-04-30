@@ -73,9 +73,9 @@ export class FTPRemoteFilesystem implements Filesystem {
       });
     });
   }
-  public deleteDir(absoluteRemotePath: string): Promise<any> {
+  public deleteDir(absoluteRemotePath: string, recursive: boolean): Promise<any> {
     return new Promise<any>((resolve, reject) => {
-      this._client.rmdir(absoluteRemotePath, (err) => {
+      this._client.rmdir(absoluteRemotePath, recursive, (err) => {
         if (!err) {
           resolve();
         } else {
