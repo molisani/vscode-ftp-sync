@@ -1,14 +1,14 @@
 import fs = require("fs");
-import path = require("path");
+import upath = require("upath");
 import Mode = require("stat-mode");
 
-import { ConnectionDescriptor } from "../sync-config";
-import { ListEntry, RemoteFilesystem } from "../remote-client";
+import { Filesystem, ListEntry, PathBuilder } from "../remote-client";
+import { ConnectionConfig } from "../sync-config";
 
 import { Client, ConnectConfig, SFTPWrapper } from "ssh2";
 
-export class SFTPRemoteFilesystem implements RemoteFilesystem {
-  public static create(desc: ConnectionDescriptor): Promise<SFTPRemoteFilesystem> {
+export class SFTPRemoteFilesystem implements Filesystem {
+  public static create(desc: ConnectionConfig): Promise<SFTPRemoteFilesystem> {
     return new Promise<SFTPRemoteFilesystem>((resolve, reject) => {
       let privateKey: Buffer | undefined = undefined;
       if (desc.privateKeyPath) {
@@ -24,7 +24,7 @@ export class SFTPRemoteFilesystem implements RemoteFilesystem {
       client.on("ready", () => {
         client.sftp((err, sftp) => {
           if (!err) {
-            const remoteClient = new SFTPRemoteFilesystem(desc.remotePath, client, sftp);
+            const remoteClient = new SFTPRemoteFilesystem(client, sftp);
             resolve(remoteClient);
           } else {
             reject(err);
@@ -33,26 +33,29 @@ export class SFTPRemoteFilesystem implements RemoteFilesystem {
       });
 
       const config: ConnectConfig = {
-        host: desc.host,
-        port: desc.port,
-        username: desc.username,
-        password: desc.password,
-        privateKey: privateKey,
-        passphrase: desc.passphrase,
-        agent: desc.agent
+        "host": desc.host,
+        "port": desc.port,
+        "username": desc.username,
+        "password": desc.password,
+        "privateKey": privateKey,
+        "passphrase": desc.passphrase,
+        "agent": desc.agent,
       };
 
       client.connect(config);
     });
   }
-  private constructor(private _remoteRoot: string, private _client: Client, private _sftp: SFTPWrapper) {
+  private constructor(private _client: Client, private _sftp: SFTPWrapper) {
+  }
+  public path(): PathBuilder {
+    return upath;
   }
   public close(): void {
     this._client.end();
   }
-  public downloadFile(localPath: string, remotePath: string): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this._sftp.fastGet(remotePath, localPath, (err) => {
+  public downloadFile(absoluteRemotePath: string, absoluteLocalPath: string): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      this._sftp.fastGet(absoluteRemotePath, absoluteLocalPath, (err) => {
         if (!err) {
           resolve();
         } else {
@@ -61,9 +64,9 @@ export class SFTPRemoteFilesystem implements RemoteFilesystem {
       });
     });
   }
-  public uploadFile(localPath: string, remotePath: string): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this._sftp.fastPut(remotePath, localPath, (err) => {
+  public uploadFile(absoluteRemotePath: string, absoluteLocalPath: string): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      this._sftp.fastPut(absoluteLocalPath, absoluteRemotePath, (err) => {
         if (!err) {
           resolve();
         } else {
@@ -72,9 +75,9 @@ export class SFTPRemoteFilesystem implements RemoteFilesystem {
       });
     });
   }
-  public deleteFile(remotePath: string): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this._sftp.unlink(remotePath, (err) => {
+  public deleteFile(absoluteRemotePath: string): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      this._sftp.unlink(absoluteRemotePath, (err) => {
         if (!err) {
           resolve();
         } else {
@@ -83,9 +86,9 @@ export class SFTPRemoteFilesystem implements RemoteFilesystem {
       });
     });
   }
-  public createDir(remotePath: string): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this._sftp.mkdir(remotePath, (err) => {
+  public createDir(absoluteRemotePath: string): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      this._sftp.mkdir(absoluteRemotePath, (err) => {
         if (!err) {
           resolve();
         } else {
@@ -94,9 +97,9 @@ export class SFTPRemoteFilesystem implements RemoteFilesystem {
       });
     });
   }
-  public deleteDir(remotePath: string): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this._sftp.rmdir(remotePath, (err) => {
+  public deleteDir(absoluteRemotePath: string): Promise<any> {
+    return new Promise<any>((resolve, reject) => {
+      this._sftp.rmdir(absoluteRemotePath, (err) => {
         if (!err) {
           resolve();
         } else {
@@ -105,11 +108,9 @@ export class SFTPRemoteFilesystem implements RemoteFilesystem {
       });
     });
   }
-  public listDir(remotePath: string): Promise<ListEntry[]> {
+  public listDir(absoluteRemotePath: string): Promise<ListEntry[]> {
     return new Promise<ListEntry[]>((resolve, reject) => {
-      const actualRemotePath = path.posix.join(this._remoteRoot, remotePath);
-      console.log(actualRemotePath);
-      this._sftp.readdir(actualRemotePath, (err, list) => {
+      this._sftp.readdir(absoluteRemotePath, (err, list) => {
         if (err) {
           return reject(err);
         }
@@ -117,20 +118,15 @@ export class SFTPRemoteFilesystem implements RemoteFilesystem {
           const mode = new Mode(f.attrs);
           const entry: ListEntry = {
             "name": f.filename,
-            "type": mode.isDirectory() ? "directory" : "file",
+            "isDirectory": mode.isDirectory(),
+            "lastModified": f.attrs.mtime,
             "size": f.attrs.size,
+            "depth": 0,
           };
           return entry;
         });
         resolve(entries);
       });
-      // this._sftp.mkdir(remotePath, (err) => {
-      //   if (!err) {
-      //     resolve();
-      //   } else {
-      //     reject(err);
-      //   }
-      // });
     });
   }
 }

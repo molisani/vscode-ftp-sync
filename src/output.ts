@@ -13,3 +13,23 @@ export function setStatusBarMessage(message: string, timeout?: number): vscode.D
     return vscode.window.setStatusBarMessage(`REMOTE-SYNC: ${message}`, timeout);
   }
 }
+
+export interface QuickPickOption<T> {
+  label: string;
+  description: string;
+  value: T;
+}
+
+export function showQuickPick<T>(options: QuickPickOption<T>[], message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    vscode.window.showQuickPick(options, {
+      "placeHolder": message,
+    }).then((result) => {
+      if (result !== undefined) {
+        resolve(result.value);
+      } else {
+        reject(new Error("No quick pick option was selected"));
+      }
+    });
+  });
+}

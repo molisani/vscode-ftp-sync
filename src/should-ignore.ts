@@ -1,18 +1,19 @@
 import minimatch = require("minimatch");
+import { PathMatching } from "./sync-config";
 
-export function shouldIgnore(include: string[] = [], exclude: string[] = [], path: string): boolean {
-  const isExcluded = exclude.some((excludeGlob): boolean => {
-    return minimatch(path, excludeGlob, {
-      "matchBase": true,
-    });
-  });
-  if (isExcluded) {
-    return true;
+export function shouldIgnore(path: string, pathMatching?: PathMatching): boolean {
+  if (pathMatching === undefined) {
+    return false;
   }
-  const isIncluded = include.some((includeGlob): boolean => {
-    return minimatch(path, includeGlob, {
-      "matchBase": true,
+  if (pathMatching.type === "include" || pathMatching.type === "exclude") {
+    const matches = pathMatching.globs.some((glob): boolean => {
+      return minimatch(path, glob, {
+        "matchBase": true,
+      });
     });
-  });
-  return !isIncluded;
+    const shouldMatch = (pathMatching.type === "include");
+    const ignore = (matches !== shouldMatch);
+    return ignore;
+  }
+  return false;
 }

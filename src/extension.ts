@@ -1,97 +1,102 @@
-import vscode = require('vscode');
-import fs = require('fs');
+import vscode = require("vscode");
+import fs = require("fs");
+import path = require("path");
 
-import { RemoteSyncConfig, DEFAULT_CONFIG, getConfig } from "./sync-config";
+import { DEFAULT_CONFIG, getConfig, RemoteSyncConfig } from "./sync-config";
 
-import { onSave } from "./on-save";
 import { buildRemoteClient, RemoteClient } from "./remote-client";
 
+import { browseRemote } from "./commands/browse-remote";
 import { initializeWorkspace } from "./commands/init-workspace";
-import { uploadDirectory, downloadDirectory } from "./commands/sync-directory";
-import { commitChanges } from "./commands/commit-changes";
-import { uploadCurrent } from "./commands/upload-current";
-import { downloadCurrent } from "./commands/download-current";
+import { downloadDirectory, uploadDirectory } from "./commands/sync-directory";
+import { downloadSelected, uploadSelected } from "./commands/sync-selected";
 import { showError } from "./output";
-
-
 
 interface CommandRegistration {
     command: string;
-    action: (config: RemoteSyncConfig, client: RemoteClient) => Promise<void>;
+    action: (client: RemoteClient, absolutePath?: string) => Promise<any>;
 }
 
 const COMMAND_REGISTRATIONS: CommandRegistration[] = [
     {
-        command: "extension.remotesync.upload",
-        action: uploadDirectory,
+        "command": "extension.remotesync.upload",
+        "action": uploadDirectory,
     },
     {
-        command: "extension.remotesync.download",
-        action: downloadDirectory,
+        "command": "extension.remotesync.download",
+        "action": downloadDirectory,
     },
     {
-        command: "extension.remotesync.commit",
-        action: commitChanges,
-    },
-    // {
-    //     command: "extension.remotesync.init",
-    //     action: initializeWorkspace,
-    // },
-    {
-        command: "extension.remotesync.uploadselected",
-        action: uploadCurrent,
+        "command": "extension.remotesync.uploadcurrent",
+        "action": uploadSelected,
     },
     {
-        command: "extension.remotesync.downloadselected",
-        action: downloadCurrent,
-    }
-]
+        "command": "extension.remotesync.downloadcurrent",
+        "action": downloadSelected,
+    },
+        {
+        "command": "extension.remotesync.uploadselected",
+        "action": uploadSelected,
+    },
+    {
+        "command": "extension.remotesync.downloadselected",
+        "action": downloadSelected,
+    },
+    {
+        "command": "extension.remotesync.browseremote",
+        "action": browseRemote,
+    },
+];
 
-
-
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
-  console.log('Congratulations, your extension "vscode-ftp-sync" is now active!');
-
 
   const init = vscode.commands.registerCommand("extension.remotesync.init", initializeWorkspace);
   context.subscriptions.push(init);
 
-  const performAction = (action: (config: RemoteSyncConfig, client: RemoteClient) => Promise<void>) => {
+  const performAction = (action: (client: RemoteClient, absolutePath?: string) => Promise<any>, absolutePath?: string) => {
     const config = getConfig();
     if (config === undefined) {
       showError("Error getting config.");
       return;
     }
-    buildRemoteClient(config.connection).then((client) => {
-      action(config, client).then(() => {
-        console.log('CLOSING!');
+    return buildRemoteClient(config).then((client) => {
+      action(client, absolutePath).then(() => {
+        client.close();
+      }).catch((err) => {
+        showError(err);
         client.close();
       });
     });
   };
 
   COMMAND_REGISTRATIONS.forEach((reg) => {
-    const command = vscode.commands.registerCommand(reg.command, () => {
-      performAction(reg.action);
+    const command = vscode.commands.registerCommand(reg.command, (uri?: vscode.Uri) => {
+      performAction(reg.action, uri && uri.fsPath);
     });
     context.subscriptions.push(command);
   });
 
-
   vscode.workspace.onDidSaveTextDocument((document) => {
-    performAction((config, client) => {
-      return onSave(document, config, client);
-    });
+    const config = getConfig();
+    if (config === undefined) {
+      showError("Error getting config.");
+      return;
+    }
+    if (config.preferences.uploadOnSave) {
+      return buildRemoteClient(config).then((client) => {
+        return uploadSelected(client, document.uri.fsPath).then(() => {
+          client.close();
+        }).catch((err) => {
+          showError(err);
+          client.close();
+        });
+      });
+    }
   });
 
 }
 
 // this method is called when your extension is deactivated
 export function deactivate() {
-
+  //
 }
