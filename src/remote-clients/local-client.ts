@@ -4,6 +4,10 @@ import path = require("path");
 import { Filesystem, ListEntry, PathBuilder } from "../remote-client";
 import { ConnectionConfig } from "../sync-config";
 
+export interface LocalConnection {
+  protocol: "local";
+}
+
 export class LocalFilesystem implements Filesystem {
   private _closed = false;
   public path(): PathBuilder {

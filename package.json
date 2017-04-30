@@ -1,7 +1,7 @@
 {
   "name": "remote-sync",
   "description": "Auto sync your work to remote FTP/SFTP server",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "publisher": "molisani",
   "engines": {
     "vscode": "^1.1.0"
@@ -25,8 +25,8 @@
     "onCommand:extension.remotesync.download",
     "onCommand:extension.remotesync.uploadcurrent",
     "onCommand:extension.remotesync.downloadcurrent",
-    "onCommand:extension.remotesync.uploadselected",
-    "onCommand:extension.remotesync.downloadselected",
+    "onCommand:extension.remotesync.uploadselectedfile",
+    "onCommand:extension.remotesync.downloadselectedfile",
     "onCommand:extension.remotesync.browseremote",
     "workspaceContains:.vscode/remote-sync.json"
   ],
@@ -35,7 +35,7 @@
     "commands": [
       {
         "command": "extension.remotesync.init",
-        "title": "Remote-Sync: Init Workspace"
+        "title": "Remote-Sync: Initialize Workspace"
       },
       {
         "command": "extension.remotesync.upload",
@@ -54,12 +54,20 @@
         "title": "Remote-Sync: Download Current File"
       },
       {
-        "command": "extension.remotesync.uploadselected",
+        "command": "extension.remotesync.uploadselectedfile",
         "title": "Remote-Sync: Upload Selected File"
       },
       {
-        "command": "extension.remotesync.downloadselected",
+        "command": "extension.remotesync.downloadselectedfile",
         "title": "Remote-Sync: Download Selected File"
+      },
+            {
+        "command": "extension.remotesync.uploadselecteddirectory",
+        "title": "Remote-Sync: Upload Selected Directory"
+      },
+      {
+        "command": "extension.remotesync.downloadselecteddirectory",
+        "title": "Remote-Sync: Download Selected Directory"
       },
       {
         "command": "extension.remotesync.browseremote",
@@ -69,22 +77,42 @@
     "menus": {
       "commandPalette": [
         {
-          "command": "extension.remotesync.uploadselected",
+          "command": "extension.remotesync.uploadselectedfile",
           "when": "false"
         },
         {
-          "command": "extension.remotesync.downloadselected",
+          "command": "extension.remotesync.downloadselectedfile",
+          "when": "false"
+        },
+        {
+          "command": "extension.remotesync.uploadselecteddirectory",
+          "when": "false"
+        },
+        {
+          "command": "extension.remotesync.downloadselecteddirectory",
           "when": "false"
         }
       ],
       "explorer/context": [
         {
-          "command": "extension.remotesync.uploadselected",
-          "group": "remotesync"
+          "command": "extension.remotesync.uploadselectedfile",
+          "group": "remotesync",
+          "when": "!explorerResourceIsFolder"
         },
         {
-          "command": "extension.remotesync.downloadselected",
-          "group": "remotesync"
+          "command": "extension.remotesync.downloadselectedfile",
+          "group": "remotesync",
+          "when": "!explorerResourceIsFolder"
+        },
+        {
+          "command": "extension.remotesync.uploadselecteddirectory",
+          "group": "remotesync",
+          "when": "explorerResourceIsFolder"
+        },
+        {
+          "command": "extension.remotesync.downloadselecteddirectory",
+          "group": "remotesync",
+          "when": "explorerResourceIsFolder"
         }
       ]
     }
@@ -96,6 +124,7 @@
     "watch": "tsc -w -p tsconfig.json"
   },
   "devDependencies": {
+    "@types/ftp": "^0.3.29",
     "@types/minimatch": "^2.0.29",
     "@types/node": "^7.0.13",
     "@types/ssh2": "^0.5.35",

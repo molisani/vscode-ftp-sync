@@ -1,6 +1,7 @@
 import vscode = require("vscode");
 import path = require("path");
 
+import { setStatusBarMessage } from "../output";
 import { RemoteClient } from "../remote-client";
 import { RemoteSyncConfig } from "../sync-config";
 
@@ -11,7 +12,10 @@ function syncSelected(isUpload: boolean, client: RemoteClient, absolutePath?: st
   } else {
     filePath = path.relative(vscode.workspace.rootPath, absolutePath);
   }
-  return (isUpload) ? client.uploadFile(filePath) : client.downloadFile(filePath);
+  const action = (isUpload) ? client.uploadFile(filePath) : client.downloadFile(filePath);
+  return action.then(() => {
+    return setStatusBarMessage(`'${filePath}' successfully ${isUpload ? "uploaded to" : "downloaded from"} remote.`);
+  });
 }
 
 export function uploadSelected(client: RemoteClient, absolutePath?: string): Promise<any> {

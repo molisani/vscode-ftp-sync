@@ -3,19 +3,12 @@ import vscode = require("vscode");
 import path = require("path");
 
 import { initializeWorkspace } from "./commands/init-workspace";
-import { QuickPickOption, showQuickPick } from "./output";
+import { QuickPickOption, showError, showQuickPick } from "./output";
+import { FTPConnection } from "./remote-clients/ftp-client";
+import { LocalConnection } from "./remote-clients/local-client";
+import { SFTPConnection } from "./remote-clients/sftp-client";
 
-export interface ConnectionConfig {
-  host: string;
-  username: string;
-  password: string;
-  port: number;
-  secure: boolean;
-  protocol: "ftp" | "sftp" | "local";
-  privateKeyPath?: string;
-  passphrase?: string;
-  agent?: string;
-}
+export type ConnectionConfig = SFTPConnection | FTPConnection | LocalConnection;
 
 export type SyncSafety = "full" | "safe" | "force";
 
@@ -56,20 +49,24 @@ export interface RemoteSyncConfig {
 export const DEFAULT_CONFIG: RemoteSyncConfig = {
   "remotePath": "./",
   "connection": {
+    "protocol": "sftp",
     "host": "host",
     "username": "username",
     "password": "password",
     "port": 21,
-    "secure": false,
-    "protocol": "ftp",
   },
   "preferences": {
     "uploadOnSave": false,
     "remotePathMatching": {
       "type": "exclude",
       "globs": [
-        ".vscode",
         ".git",
+      ],
+    },
+    "localPathMatching": {
+      "type": "exclude",
+      "globs": [
+        ".vscode",
         ".DS_Store",
       ],
     },
@@ -112,7 +109,7 @@ export function getConfig(): RemoteSyncConfig | undefined {
   try {
     config = JSON.parse(configJson);
   } catch (err) {
-    vscode.window.showErrorMessage(`REMOTE-SYNC: Config file at ${getConfigPath()} is not a valid JSON document - ${err.message}`);
+    showError(`Config file at ${getConfigPath()} is not a valid JSON document - ${err.message}`);
   }
   return config;
 }

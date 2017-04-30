@@ -1,43 +1,27 @@
 import fs = require("fs");
 import upath = require("upath");
-import Mode = require("stat-mode");
 
 import { Filesystem, ListEntry, PathBuilder } from "../remote-client";
 
-import { Client, ConnectConfig, SFTPWrapper } from "ssh2";
+import Client = require("ftp");
 
-export interface SFTPConnection extends ConnectConfig {
-  protocol: "sftp";
-  privateKeyPath?: string;
+export interface FTPConnection extends Client.Options {
+  protocol: "ftp";
+  useCompression?: boolean;
 }
 
-export class SFTPRemoteFilesystem implements Filesystem {
-  public static create(desc: SFTPConnection): Promise<SFTPRemoteFilesystem> {
-    return new Promise<SFTPRemoteFilesystem>((resolve, reject) => {
-
-      const connectConfig: ConnectConfig = Object.assign({}, desc);
-      if (desc.privateKeyPath) {
-        try {
-          connectConfig.privateKey = fs.readFileSync(desc.privateKeyPath);
-        } catch (err) {
-          return reject(err);
-        }
-      }
-
+export class FTPRemoteFilesystem implements Filesystem {
+  public static create(desc: FTPConnection): Promise<FTPRemoteFilesystem> {
+    return new Promise<FTPRemoteFilesystem>((resolve, reject) => {
+      const clientOptions: Client.Options = Object.assign({}, desc);
       const client = new Client();
       client.on("ready", () => {
-        client.sftp((err, sftp) => {
-          if (!err) {
-            resolve(new SFTPRemoteFilesystem(client, sftp));
-          } else {
-            reject(err);
-          }
-        });
+        resolve(new FTPRemoteFilesystem(client, desc));
       });
-      client.connect(connectConfig);
+      client.connect(clientOptions);
     });
   }
-  private constructor(private _client: Client, private _sftp: SFTPWrapper) {
+  private constructor(private _client: Client, private _options: FTPConnection) {
   }
   public path(): PathBuilder {
     return upath;
@@ -47,9 +31,9 @@ export class SFTPRemoteFilesystem implements Filesystem {
   }
   public downloadFile(absoluteRemotePath: string, absoluteLocalPath: string): Promise<any> {
     return new Promise<any>((resolve, reject) => {
-      this._sftp.fastGet(absoluteRemotePath, absoluteLocalPath, (err) => {
+      this._client.get(absoluteRemotePath, !!this._options.useCompression, (err, stream) => {
         if (!err) {
-          resolve();
+          stream.pipe(fs.createWriteStream(absoluteLocalPath)).on("close", resolve);
         } else {
           reject(err);
         }
@@ -58,7 +42,7 @@ export class SFTPRemoteFilesystem implements Filesystem {
   }
   public uploadFile(absoluteRemotePath: string, absoluteLocalPath: string): Promise<any> {
     return new Promise<any>((resolve, reject) => {
-      this._sftp.fastPut(absoluteLocalPath, absoluteRemotePath, (err) => {
+      this._client.put(absoluteLocalPath, absoluteRemotePath, !!this._options.useCompression, (err) => {
         if (!err) {
           resolve();
         } else {
@@ -69,7 +53,7 @@ export class SFTPRemoteFilesystem implements Filesystem {
   }
   public deleteFile(absoluteRemotePath: string): Promise<any> {
     return new Promise<any>((resolve, reject) => {
-      this._sftp.unlink(absoluteRemotePath, (err) => {
+      this._client.delete(absoluteRemotePath, (err) => {
         if (!err) {
           resolve();
         } else {
@@ -80,7 +64,7 @@ export class SFTPRemoteFilesystem implements Filesystem {
   }
   public createDir(absoluteRemotePath: string): Promise<any> {
     return new Promise<any>((resolve, reject) => {
-      this._sftp.mkdir(absoluteRemotePath, (err) => {
+      this._client.mkdir(absoluteRemotePath, (err) => {
         if (!err) {
           resolve();
         } else {
@@ -91,7 +75,7 @@ export class SFTPRemoteFilesystem implements Filesystem {
   }
   public deleteDir(absoluteRemotePath: string): Promise<any> {
     return new Promise<any>((resolve, reject) => {
-      this._sftp.rmdir(absoluteRemotePath, (err) => {
+      this._client.rmdir(absoluteRemotePath, (err) => {
         if (!err) {
           resolve();
         } else {
@@ -102,17 +86,16 @@ export class SFTPRemoteFilesystem implements Filesystem {
   }
   public listDir(absoluteRemotePath: string): Promise<ListEntry[]> {
     return new Promise<ListEntry[]>((resolve, reject) => {
-      this._sftp.readdir(absoluteRemotePath, (err, list) => {
+      this._client.list(absoluteRemotePath, !!this._options.useCompression, (err, listings) => {
         if (err) {
           return reject(err);
         }
-        const entries: ListEntry[] = list.map((f) => {
-          const mode = new Mode(f.attrs);
+        const entries: ListEntry[] = listings.map((listing) => {
           const entry: ListEntry = {
-            "name": f.filename,
-            "isDirectory": mode.isDirectory(),
-            "lastModified": f.attrs.mtime,
-            "size": f.attrs.size,
+            "name": listing.name,
+            "isDirectory": listing.type === "d",
+            "lastModified": listing.date.getTime(),
+            "size": Number(listing.size),
             "depth": 0,
           };
           return entry;

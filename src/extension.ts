@@ -34,12 +34,20 @@ const COMMAND_REGISTRATIONS: CommandRegistration[] = [
         "command": "extension.remotesync.downloadcurrent",
         "action": downloadSelected,
     },
-        {
-        "command": "extension.remotesync.uploadselected",
+    {
+        "command": "extension.remotesync.uploadselectedfile",
         "action": uploadSelected,
     },
     {
-        "command": "extension.remotesync.downloadselected",
+        "command": "extension.remotesync.downloadselectedfile",
+        "action": downloadSelected,
+    },
+        {
+        "command": "extension.remotesync.uploadselecteddirectory",
+        "action": uploadSelected,
+    },
+    {
+        "command": "extension.remotesync.downloadselecteddirectory",
         "action": downloadSelected,
     },
     {
